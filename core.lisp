@@ -57,12 +57,6 @@
            "TRANSACTION-RESPONSE-ERROR-CODE"
            "TRANSACTION-RESPONSE-ERROR-TEXT"
            ;;
-           "ACCOUNT"
-           "ACCOUNT-ENDPOINT"
-           "ACCOUNT-API-LOGIN-ID"
-           "ACCOUNT-TRANSACTION-KEY"
-           "ACCOUNT-CUSTOMER-INSTRUCTIONS"
-           ;;
            "REQUEST"
            "REQUEST-MERCHANT-AUTHENTICATION"
            "REQUEST-REF-ID"
@@ -240,17 +234,6 @@
 ;; LATER auth-only-transaction-response
 ;; LATER prior-auth-capture-transaction-response
 ;; LATER capture-only-transaction-response
-
-(defclass account ()
-  ((endpoint :initarg :endpoint :reader account-endpoint)
-   (api-login-id :initarg :api-login-id :reader account-api-login-id)
-   (transaction-key :initarg :transaction-key :reader account-transaction-key)
-   (customer-instructions :initarg :customer-instructions :reader account-customer-instructions))
-  (:default-initargs
-   :endpoint #u""
-   :api-login-id ""
-   :transaction-key ""
-   :customer-instructions ""))
 
 (defclass request ()
   ((merchant-authentication :initarg :merchant-authentication :reader request-merchant-authentication)
