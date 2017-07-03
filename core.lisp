@@ -179,17 +179,21 @@
 
 (defgeneric transaction-response-response-code (transaction-response))
 
-(defconstant +transaction-response-code-approved+ 1)
-(defconstant +transaction-response-code-declined+ 2)
-(defconstant +transaction-response-code-error+ 3)
-(defconstant +transaction-response-code-held-for-review+ 4)
+(defparameter *transaction-response-response-code-approved* "1")
+(defparameter *transaction-response-response-code-declined* "2")
+(defparameter *transaction-response-response-code-error* "3")
+(defparameter *transaction-response-response-code-held-for-review* "4")
 
 (defun transaction-response-response-code-description (transaction-response)
-  (ecase (transaction-response-response-code transaction-response)
-    (+transaction-response-code-approved+ :approved)
-    (+transaction-response-code-declined+ :declined)
-    (+transaction-response-code-error+ :error)
-    (+transaction-response-code-held-for-review+ :held-for-review)))
+  (let ((response-code (transaction-response-response-code transaction-response)))
+    (cond ((string= *transaction-response-response-code-approved* response-code)
+           :approved)
+          ((string= *transaction-response-response-code-declined* response-code)
+           :declined)
+          ((string= *transaction-response-response-code-error* response-code)
+           :error)
+          ((string= *transaction-response-response-code-held-for-review* response-code)
+           :held-for-review))))
 
 (defclass auth-capture-transaction-response (transaction-response)
   ((response-code :initarg :response-code :reader transaction-response-response-code)
@@ -210,20 +214,20 @@
    ;; LATER other fields...
    )
   (:default-initargs
-   :response-code nil
-    :auth-code nil
-    :avs-result-code nil
-    :cvv-result-code nil
-    :cavv-result-code nil
-    :trans-id nil
-    :ref-trans-id nil
-    :trans-hash nil
-    :account-number nil
-    :account-type nil
-    :message-code nil
-    :message-description nil
-    :error-code nil
-    :error-text nil))
+   :response-code ""
+    :auth-code ""
+    :avs-result-code ""
+    :cvv-result-code ""
+    :cavv-result-code ""
+    :trans-id ""
+    :ref-trans-id ""
+    :trans-hash ""
+    :account-number ""
+    :account-type ""
+    :message-code ""
+    :message-description ""
+    :error-code ""
+    :error-text ""))
 
 ;; TODO refun-transaction-response
 ;; TODO void-transaction-response
@@ -429,10 +433,10 @@
                      :trans-hash (value :trans-hash)
                      :account-number (value :account-number)
                      :account-type (value :account-type)
-                     :message-code (cdr (assoc :code message))
-                     :message-description (cdr (assoc :description message))
-                     :error-code (cdr (assoc :error-code err))
-                     :error-text (cdr (assoc :error-text err))))))
+                     :message-code (or (cdr (assoc :code message)) "")
+                     :message-description (or (cdr (assoc :description message)))
+                     :error-code (or (cdr (assoc :error-code err)) "")
+                     :error-text (or (cdr (assoc :error-text err)) "")))))
 
 (defun execute (request endpoint)
   (check-type request request)
