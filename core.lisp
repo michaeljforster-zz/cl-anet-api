@@ -34,15 +34,40 @@
            "MAKE-CUSTOMER-ADDRESS"
            ;;
            "TRANSACTION-REQUEST"
+           "TRANSACTION-REQUEST-TYPE"
            "TRANSACTION-REQUEST-ALLOW-PARTIAL-AUTH-P"
            "TRANSACTION-REQUEST-DUPLICATE-WINDOW"
            "AUTH-CAPTURE-TRANSACTION-REQUEST"
            ;;
            "TRANSACTION-RESPONSE"
            "AUTH-CAPTURE-TRANSACTION-RESPONSE"
+           "TRANSACTION-RESPONSE-RESPONSE-CODE"
+           "TRANSACTION-RESPONSE-RESPONSE-CODE-DESCRIPTION"
+           "TRANSACTION-RESPONSE-AUTH-CODE"
+           "TRANSACTION-RESPONSE-AVS-RESULT-CODE"
+           "TRANSACTION-RESPONSE-CVV-RESULT-CODE"
+           "TRANSACTION-RESPONSE-CAVV-RESULT-CODE"
+           "TRANSACTION-RESPONSE-TRANS-ID"
+           "TRANSACTION-RESPONSE-REF-TRANS-ID"
+           "TRANSACTION-RESPONSE-TRANS-HASH"
+           "TRANSACTION-RESPONSE-ACCOUNT-NUMBER"
+           "TRANSACTION-RESPONSE-ACCOUNT-TYPE"
+           "TRANSACTION-RESPONSE-MESSAGE-CODE"
+           "TRANSACTION-RESPONSE-MESSAGE-DESCRIPTION"
+           "TRANSACTION-RESPONSE-ERROR-CODE"
+           "TRANSACTION-RESPONSE-ERROR-TEXT"
            ;;
            "REQUEST"
+           "REQUEST-MERCHANT-AUTHENTICATION"
+           "REQUEST-REF-ID"
+           "REQUEST-TRANSACTION-REQUEST"
+           ;;
            "RESPONSE"
+           "RESPONSE-REF-ID"
+           "RESPONSE-RESULT-CODE"
+           "RESPONSE-MESSAGE-CODE"
+           "RESPONSE-MESSAGE-TEXT"
+           "RESPONSE-TRANSACTION-RESPONSE"
            ;;
            "API-ERROR"
            "EXECUTION-FAILED"
@@ -154,6 +179,18 @@
 
 (defgeneric transaction-response-response-code (transaction-response))
 
+(defconstant +transaction-response-code-approved+ 1)
+(defconstant +transaction-response-code-declined+ 2)
+(defconstant +transaction-response-code-error+ 3)
+(defconstant +transaction-response-code-held-for-review+ 4)
+
+(defun transaction-response-response-code-description (transaction-response)
+  (ecase (transaction-response-response-code transaction-response)
+    (+transaction-response-code-approved+ :approved)
+    (+transaction-response-code-declined+ :declined)
+    (+transaction-response-code-error+ :error)
+    (+transaction-response-code-held-for-review+ :held-for-review)))
+
 (defclass auth-capture-transaction-response (transaction-response)
   ((response-code :initarg :response-code :reader transaction-response-response-code)
    (auth-code :initarg :auth-code :reader transaction-response-auth-code)
@@ -168,21 +205,25 @@
    (account-type :initarg :account-type :reader transaction-response-account-type)
    (message-code :initarg :message-code :reader transaction-response-message-code)
    (message-description :initarg :message-description :reader transaction-response-message-description)
+   (error-code :initarg :error-code :reader transaction-response-error-code)
+   (error-text :initarg :error-text :reader transaction-response-error-text)
    ;; LATER other fields...
    )
   (:default-initargs
-   :response-code ""
-    :auth-code ""
-    :avs-result-code ""
-    :cvv-result-code ""
-    :cavv-result-code ""
-    :trans-id ""
-    :ref-trans-id ""
-    :trans-hash ""
-    :account-number ""
-    :account-type ""
-    :message-code ""
-    :message-description ""))
+   :response-code nil
+    :auth-code nil
+    :avs-result-code nil
+    :cvv-result-code nil
+    :cavv-result-code nil
+    :trans-id nil
+    :ref-trans-id nil
+    :trans-hash nil
+    :account-number nil
+    :account-type nil
+    :message-code nil
+    :message-description nil
+    :error-code nil
+    :error-text nil))
 
 ;; TODO refun-transaction-response
 ;; TODO void-transaction-response
@@ -367,26 +408,31 @@
 (defun raw-response-transaction-response-message-text (raw-response)
   (cdr (assoc :text (raw-response-transaction-response-message raw-response))))
 
-(defgeneric make-transaction-response-for-transaction-request
+(defgeneric transaction-request-transaction-response
     (transaction-request raw-response-transaction-response))
 
-(defmethod make-transaction-response-for-transaction-request
+(defmethod transaction-request-transaction-response
     ((transaction-request auth-capture-transaction-request)
      raw-response-transaction-response)
-  (let ((message (cadr (assoc :messages raw-response-transaction-response))))
-    (make-instance 'auth-capture-transaction-response
-                   :response-code (cdr (assoc :response-code raw-response-transaction-response))
-                   :auth-code (cdr (assoc :auth-code raw-response-transaction-response))
-                   :avs-result-code (cdr (assoc :avs-result-code raw-response-transaction-response))
-                   :cvv-result-code (cdr (assoc :cvv-result-code raw-response-transaction-response))
-                   :cavv-result-code (cdr (assoc :cavv-result-code raw-response-transaction-response))
-                   :trans-id (cdr (assoc :trans-id raw-response-transaction-response))
-                   :ref-trans-id (cdr (assoc :ref-trans-id raw-response-transaction-response))
-                   :trans-hash (cdr (assoc :trans-hash raw-response-transaction-response))
-                   :account-number (cdr (assoc :account-number raw-response-transaction-response))
-                   :account-type (cdr (assoc :account-type raw-response-transaction-response))
-                   :message-code (cdr (assoc :code message))
-                   :message-description (cdr (assoc :description message)))))
+  (flet ((value (key)
+           (cdr (assoc key raw-response-transaction-response))))
+    (let ((message (cadr (assoc :messages raw-response-transaction-response)))
+          (err (cadr (assoc :errors raw-response-transaction-response))))
+      (make-instance 'auth-capture-transaction-response
+                     :response-code (value :response-code)
+                     :auth-code (value :auth-code)
+                     :avs-result-code (value :avs-result-code)
+                     :cvv-result-code (value :cvv-result-code)
+                     :cavv-result-code (value :cavv-result-code)
+                     :trans-id (value :trans-id)
+                     :ref-trans-id (value :ref-trans-+id+) ; Parsed from "refTransID"!
+                     :trans-hash (value :trans-hash)
+                     :account-number (value :account-number)
+                     :account-type (value :account-type)
+                     :message-code (cdr (assoc :code message))
+                     :message-description (cdr (assoc :description message))
+                     :error-code (cdr (assoc :error-code err))
+                     :error-text (cdr (assoc :error-text err))))))
 
 (defun execute (request endpoint)
   (check-type request request)
@@ -414,13 +460,11 @@
           (error 'transaction-failed :request request :raw-response raw-response))
         (when (null (raw-response-transaction-response raw-response))
           (error 'transaction-failed :request request :raw-response raw-response))
-        (when (null (raw-response-transaction-response-message raw-response))
-          (error 'transaction-failed :request request :raw-response raw-response))
         (make-instance 'response
                        :ref-id (raw-response-ref-id raw-response)
                        :result-code (raw-response-result-code raw-response)
                        :message-code (raw-response-message-code raw-response)
                        :message-text (raw-response-message-text raw-response)
-                       :transaction-response (make-transaction-response-for-transaction-request
+                       :transaction-response (transaction-request-transaction-response
                                               (request-transaction-request request)
                                               (raw-response-transaction-response raw-response)))))))
