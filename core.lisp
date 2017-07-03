@@ -250,7 +250,7 @@
    :endpoint #u""
    :api-login-id ""
    :transaction-key ""
-   :account-customer-instructions ""))
+   :customer-instructions ""))
 
 (defclass request ()
   ((merchant-authentication :initarg :merchant-authentication :reader request-merchant-authentication)
