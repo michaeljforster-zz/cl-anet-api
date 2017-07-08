@@ -311,7 +311,8 @@
       transaction-request
     (cl-json:with-object (stream)
       (cl-json:encode-object-member :transaction-type transaction-request-type stream)
-      (cl-json:encode-object-member :amount (format nil "~/wu-decimal:$/" transaction-request-amount)
+      (cl-json:encode-object-member :amount (let ((wu-decimal:*print-precision-loss* :round))
+                                              (format nil "~/wu-decimal:$/" transaction-request-amount))
                                     stream)
       (unless (null transaction-request-payment)
         (cl-json:encode-object-member :payment transaction-request-payment stream))
