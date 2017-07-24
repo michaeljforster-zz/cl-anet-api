@@ -110,8 +110,7 @@
   (zip "" :type string :read-only t) ; max. 20 alphanumeric chars
   (country "" :type string :read-only t) ; max. 60 alphanumeric chars
   (phone-number "" :type string :read-only t) ; max. 25 numeric, space, (, ), - chars
-  (fax-number "" :type string :read-only t) ; max. 25 numeric, space, (, ), - chars
-  (email "" :type string :read-only t))
+  (fax-number "" :type string :read-only t))  ; max. 25 numeric, space, (, ), - chars
 
 (defclass transaction-request () ())
 
@@ -288,8 +287,7 @@
                    (customer-address-zip customer-address-zip)
                    (customer-address-country customer-address-country)
                    (customer-address-phone-number customer-address-phone-number)
-                   (customer-address-fax-number customer-address-fax-number)
-                   (customer-address-email customer-address-email))
+                   (customer-address-fax-number customer-address-fax-number))
       object
     (cl-json:with-object (stream)
       (cl-json:encode-object-member :first-name customer-address-first-name stream)
@@ -301,8 +299,7 @@
       (cl-json:encode-object-member :zip customer-address-zip stream)
       (cl-json:encode-object-member :country customer-address-country stream)
       (cl-json:encode-object-member :phone-number customer-address-phone-number stream)
-      (cl-json:encode-object-member :fax-number customer-address-fax-number stream)
-      (cl-json:encode-object-member :email customer-address-email))))
+      (cl-json:encode-object-member :fax-number customer-address-fax-number stream))))
 
 (defmethod cl-json:encode-json ((transaction-request auth-capture-transaction-request)
                                 &optional (stream cl-json:*json-output*))
