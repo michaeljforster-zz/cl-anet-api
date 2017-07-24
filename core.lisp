@@ -31,6 +31,10 @@
   (:import-from "DRAKMA")
   (:export "MAKE-MERCHANT-AUTHENTICATION"
            "MAKE-CREDIT-CARD"
+           "MAKE-ORDER"
+           "MAKE-LINE-ITEM"
+           "MAX-TAX"
+           "MAKE-CUSTOMER"
            "MAKE-CUSTOMER-ADDRESS"
            ;;
            "TRANSACTION-REQUEST"
@@ -90,6 +94,9 @@
 
 (defparameter *result-code-ok* "Ok")
 
+;; See http://developer.authorize.net/api/reference/
+(defparameter *default-customer-ip* "255.255.255.255")
+
 (defstruct (merchant-authentication (:constructor make-merchant-authentication (api-login-id
                                                                                 transaction-key)))
   (api-login-id nil :type string :read-only t)
@@ -99,6 +106,27 @@
   (number nil :type string :read-only t)
   (expiration-date nil :type string :read-only t)
   (security-code nil :type string :read-only t))
+
+(defstruct (order (:constructor make-order (invoice-number &optional (description ""))))
+  (invoice-number nil :type string :read-only t)
+  (description nil :type string :read-only t))
+
+(defstruct (line-item (:constructor make-line-item (item-id name description quantity price)))
+  (item-id nil :type string :read-only t) ; max. 31 chars
+  (name nil :type string :read-only t) ; max. 31 chars
+  (description nil :type string :read-only t) ; max. 255 chars
+  (quantity nil :type (integer 0) :read-only t) ; max. 2 decimal places, positive
+  (unit-price nil :type (rational 0) :read-only t)) ; excluding tax, shipping, and duty
+
+(defstruct (tax (:constructor make-tax (amount name description)))
+  (amount nil :type (rational 0) :read-only t) ; max. 2 decimal places
+  (name nil :type string :read-only t)
+  (description nil :type string :read-only t))
+
+(defstruct (customer (:constructor make-customer (type id email)))
+  (type nil :type string :read-only t) ; "individual" or "business"
+  (id nil :type string :read-only t) ; max. 20 alphanumeric chars
+  (email nil :type string :read-only t)) ; max. 255 chars
 
 (defstruct customer-address
   (first-name "" :type string :read-only t) ; max. 50 alphanumeric chars
@@ -130,12 +158,22 @@
 (defclass auth-capture-transaction-request (transaction-request)
   ((amount :initarg :amount :reader transaction-request-amount) ; total, including tax, shipping, and other charges; 15 digits
    (payment :initarg :payment :reader transaction-request-payment)
+   (order :initarg :order :reader transaction-request-order)
+   (line-items :initarg :line-items :reader transaction-request-line-items)
+   (tax :initarg :tax :reader transaction-request-tax)
+   (customer :initarg :customer :reader transaction-request-customer)
    (bill-to :initarg :bill-to :reader transaction-request-bill-to)
+   (customer-ip :initarg :customer-ip :reader transaction-request-customer-ip)
    (settings :initform '() :reader transaction-request-settings))
   (:default-initargs
    :amount #$0.00
     :payment nil
-    :bill-to nil))
+    :order nil
+    :line-items '()
+    :tax nil
+    :customer nil
+    :bill-to nil
+    :customer-ip *default-customer-ip*))
 
 (defmethod transaction-request-type ((transaction-request auth-capture-transaction-request))
   "authCaptureTransaction")
@@ -277,6 +315,52 @@
           (cl-json:encode-object-member :expiration-date credit-card-expiration-date stream)
           (cl-json:encode-object-member :card-code credit-card-security-code stream))))))
 
+(defmethod cl-json:encode-json ((object order) &optional (stream cl-json:*json-output*))
+  (with-accessors ((order-invoice-number order-invoice-number)
+                   (order-description order-description))
+      object
+    (cl-json:with-object (stream)
+      (cl-json:encode-object-member :type order-invoice-number stream)
+      (cl-json:encode-object-member :email order-description stream))))
+
+(defmethod cl-json:encode-json ((object line-item) &optional (stream cl-json:*json-output*))
+  (with-accessors ((line-item-item-id line-item-item-id)
+                   (line-item-name line-item-name)
+                   (line-item-description line-item-description)
+                   (line-item-quantity line-item-quantity)
+                   (line-item-unit-price line-item-unit-price))
+      object
+    (cl-json:with-object (stream)
+      (cl-json:encode-object-member :item-id line-item-item-id stream)
+      (cl-json:encode-object-member :name line-item-id stream)
+      (cl-json:encode-object-member :description line-item-description stream)
+      (cl-json:encode-object-member :quantity (princ-to-string line-item-quantity) stream)
+      (cl-json:encode-object-member :unit-price (let ((wu-decimal:*print-precision-loss* :round))
+                                                  (format nil "~/wu-decimal:$/" line-item-unit-price))
+                                    stream))))
+
+(defmethod cl-json:encode-json ((object tax) &optional (stream cl-json:*json-output*))
+  (with-accessors ((tax-amount tax-amount)
+                   (tax-name tax-name)
+                   (tax-description tax-description))
+      object
+    (cl-json:with-object (stream)
+      (cl-json:encode-object-member :amount (let ((wu-decimal:*print-precision-loss* :round))
+                                              (format nil "~/wu-decimal:$/" tax-amount))
+                                    stream)
+      (cl-json:encode-object-member :name tax-name stream)
+      (cl-json:encode-object-member :description tax-description stream))))
+
+(defmethod cl-json:encode-json ((object customer) &optional (stream cl-json:*json-output*))
+  (with-accessors ((customer-type customer-type)
+                   (customer-id customer-id)
+                   (customer-email customer-email))
+      object
+    (cl-json:with-object (stream)
+      (cl-json:encode-object-member :type customer-type stream)
+      (cl-json:encode-object-member :id customer-id stream)
+      (cl-json:encode-object-member :email customer-email stream))))
+
 (defmethod cl-json:encode-json ((object customer-address) &optional (stream cl-json:*json-output*))
   (with-accessors ((customer-address-first-name customer-address-first-name)
                    (customer-address-last-name customer-address-last-name)
@@ -306,7 +390,12 @@
   (with-accessors ((transaction-request-type transaction-request-type)
                    (transaction-request-amount transaction-request-amount)
                    (transaction-request-payment transaction-request-payment)
+                   (transaction-request-order transaction-request-order)
+                   (transaction-request-line-items transaction-request-line-items)
+                   (transaction-request-tax transaction-request-tax)
+                   (transaction-request-customer transaction-request-customer)
                    (transaction-request-bill-to transaction-request-bill-to)
+                   (transaction-request-customer-ip transaction-request-customer-ip)
                    (transaction-request-settings transaction-request-settings))
       transaction-request
     (cl-json:with-object (stream)
@@ -316,8 +405,20 @@
                                     stream)
       (unless (null transaction-request-payment)
         (cl-json:encode-object-member :payment transaction-request-payment stream))
+      (unless (transaction-request-order)
+        (cl-json:encode-object-member :order transaction-request-order stream))
+      (unless (null transaction-request-line-items)
+        (cl-json:as-object-member (:line-items stream)
+          (cl-json:with-object (stream)
+            (dolist (line-item transaction-request-line-items)
+              (cl-json:encode-object-member :line-item line-item stream)))))
+      (unless (transaction-request-tax)
+        (cl-json:encode-object-member :tax transaction-request-tax stream))
+      (unless (null transaction-request-customer)
+        (cl-json:encode-object-member :customer transaction-request-customer stream))
       (unless (null transaction-request-bill-to)
         (cl-json:encode-object-member :bill-to transaction-request-bill-to stream))
+      (cl-json:encode-object-member :customer-i-p transaction-request-customer-ip stream)
       (unless (null transaction-request-settings) ; assuming a list implementation
         (cl-json:as-object-member (:transaction-settings stream)
           (cl-json:with-object (stream)
