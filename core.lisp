@@ -320,8 +320,8 @@
                    (order-description order-description))
       object
     (cl-json:with-object (stream)
-      (cl-json:encode-object-member :type order-invoice-number stream)
-      (cl-json:encode-object-member :email order-description stream))))
+      (cl-json:encode-object-member :invoice-number order-invoice-number stream)
+      (cl-json:encode-object-member :description order-description stream))))
 
 (defmethod cl-json:encode-json ((object line-item) &optional (stream cl-json:*json-output*))
   (with-accessors ((line-item-item-id line-item-item-id)
