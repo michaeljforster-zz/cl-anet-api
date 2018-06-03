@@ -328,15 +328,15 @@
                    (line-item-name line-item-name)
                    (line-item-description line-item-description)
                    (line-item-quantity line-item-quantity)
-                   (line-item-unit-price line-item-unit-price))
+                   (line-item-price line-item-price))
       object
     (cl-json:with-object (stream)
       (cl-json:encode-object-member :item-id line-item-item-id stream)
       (cl-json:encode-object-member :name line-item-id stream)
       (cl-json:encode-object-member :description line-item-description stream)
       (cl-json:encode-object-member :quantity (princ-to-string line-item-quantity) stream)
-      (cl-json:encode-object-member :unit-price (let ((wu-decimal:*print-precision-loss* :round))
-                                                  (format nil "~/wu-decimal:$/" line-item-unit-price))
+      (cl-json:encode-object-member :price (let ((wu-decimal:*print-precision-loss* :round))
+                                                  (format nil "~/wu-decimal:$/" line-item-price))
                                     stream))))
 
 (defmethod cl-json:encode-json ((object tax) &optional (stream cl-json:*json-output*))
