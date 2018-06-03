@@ -115,8 +115,8 @@
   (item-id nil :type string :read-only t) ; max. 31 chars
   (name nil :type string :read-only t) ; max. 31 chars
   (description nil :type string :read-only t) ; max. 255 chars
-  (quantity nil :type (integer 0) :read-only t) ; max. 2 decimal places, positive
-  (unit-price nil :type (rational 0) :read-only t)) ; excluding tax, shipping, and duty
+  (quantity 0 :type (integer 0) :read-only t) ; max. 2 decimal places, positive
+  (price 0 :type (rational 0) :read-only t)) ; excluding tax, shipping, and duty
 
 (defstruct (tax (:constructor make-tax (amount name description)))
   (amount nil :type (rational 0) :read-only t) ; max. 2 decimal places
