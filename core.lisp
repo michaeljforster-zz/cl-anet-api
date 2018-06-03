@@ -283,11 +283,11 @@
     :transaction-request nil))
 
 (defclass response ()
-  ((ref-id :initarg :ref-id :reader response-ref-id)
-   (result-code :initarg :result-code :reader response-result-code)
-   (message-code :initarg :message-code :reader response-message-code)
-   (message-text :initarg :message-text :reader response-message-text)
-   (transaction-response :initarg :transaction-response :reader response-transaction-response))
+  ((ref-id :initarg :ref-id :accessor response-ref-id)
+   (result-code :initarg :result-code :accessor response-result-code)
+   (message-code :initarg :message-code :accessor response-message-code)
+   (message-text :initarg :message-text :accessor response-message-text)
+   (transaction-response :initarg :transaction-response :accessor response-transaction-response))
   (:default-initargs
    :ref-id ""
     :result-code ""
