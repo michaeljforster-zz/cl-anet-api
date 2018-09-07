@@ -332,10 +332,10 @@
       object
     (cl-json:with-object (stream)
       (cl-json:encode-object-member :item-id line-item-item-id stream)
-      (cl-json:encode-object-member :name line-item-id stream)
+      (cl-json:encode-object-member :name line-item-name stream)
       (cl-json:encode-object-member :description line-item-description stream)
       (cl-json:encode-object-member :quantity (princ-to-string line-item-quantity) stream)
-      (cl-json:encode-object-member :price (let ((wu-decimal:*print-precision-loss* :round))
+      (cl-json:encode-object-member :unit-price (let ((wu-decimal:*print-precision-loss* :round))
                                                   (format nil "~/wu-decimal:$/" line-item-price))
                                     stream))))
 
