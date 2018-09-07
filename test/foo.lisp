@@ -1,4 +1,4 @@
-;;;; test.lisp
+;;;; test/foo.lisp
 
 ;;; The MIT License (MIT)
 ;;;
@@ -22,12 +22,12 @@
 ;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;;; SOFTWARE.
 
-(defpackage "CL-ANET-API/TEST"
+(defpackage "CL-ANET-API/TEST/FOO"
   (:use "CL"
         "LISP-UNIT")
-  (:import-from "CL-ANET-API/CORE"))
+  (:import-from "CL-ANET-API"))
 
-(in-package "CL-ANET-API/TEST")
+(in-package "CL-ANET-API/TEST/FOO")
 
 (define-test foo-fails
-  (assert-equal 42 (cl-anet-api/core:foo)))
+  (assert-equal 42 (cl-anet-api:foo)))

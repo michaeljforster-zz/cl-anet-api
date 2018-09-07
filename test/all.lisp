@@ -1,4 +1,4 @@
-;;;; cl-anet-api.asd
+;;;; test/all.lisp
 
 ;;; The MIT License (MIT)
 ;;;
@@ -22,19 +22,15 @@
 ;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;;; SOFTWARE.
 
-#-asdf3.1 (error "cl-anet-api requires ASDF 3.1 or later. Please upgrade your ASDF.")
+;; Test name collisions preclude use of UIOP:DEFINE-PACKAGE and
+;; :USE-REEXPORT.
+(defpackage "CL-ANET-API/TEST/ALL"
+  (:use "CL")
+  (:import-from "LISP-UNIT")
+  (:import-from "CL-ANET-API/TEST/FOO")
+  (:export "RUN-TESTS"))
 
-(asdf:defsystem "cl-anet-api"
-  :description "Common Lisp library for the Authorize.Net API"
-  :author "Michael J. Forster <mike@forsterfamily.ca>"
-  :license "MIT"
-  :version "0.0.1"
-  :class :package-inferred-system
-  :defsystem-depends-on ("asdf-package-system")
-  :depends-on ("cl-anet-api/core/all")
-  :in-order-to ((test-op (test-op "cl-anet-api/test/all")))
-  :perform (test-op (o c)
-                    (uiop:symbol-call "CL-ANET-API/TEST/ALL" "RUN-TESTS")))
+(in-package "CL-ANET-API/TEST/ALL")
 
-(asdf:defsystem "cl-anet-api/test"
-  :depends-on ("cl-anet-api/test/all"))
+(defun run-tests ()
+  (lisp-unit:run-tests :all "CL-ANET-API/TEST/FOO"))
