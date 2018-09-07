@@ -1,4 +1,4 @@
-;;;; core.lisp
+;;;; core/request-response.lisp
 
 ;;; The MIT License (MIT)
 ;;;
@@ -22,8 +22,7 @@
 ;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;;; SOFTWARE.
 
-(defpackage "CL-ANET-API/CORE"
-  (:nicknames "CL-ANET-API")
+(defpackage "CL-ANET-API/CORE/REQUEST-RESPONSE"
   (:use "CL")
   (:import-from "ALEXANDRIA")
   (:import-from "WU-DECIMAL")
@@ -42,10 +41,17 @@
            "TRANSACTION-REQUEST-TYPE"
            "TRANSACTION-REQUEST-ALLOW-PARTIAL-AUTH-P"
            "TRANSACTION-REQUEST-DUPLICATE-WINDOW"
-           "AUTH-CAPTURE-TRANSACTION-REQUEST"
+           "TRANSACTION-REQUEST-AMOUNT"
+           "TRANSACTION-REQUEST-PAYMENT"
+           "TRANSACTION-REQUEST-ORDER"
+           "TRANSACTION-REQUEST-LINE-ITEMS"
+           "TRANSACTION-REQUEST-TAX"
+           "TRANSACTION-REQUEST-CUSTOMER"
+           "TRANSACTION-REQUEST-BILL-TO"
+           "TRANSACTION-REQUEST-CUSTOMER-IP"
+           "TRANSACTION-REQUEST-SETTINGS"
            ;;
            "TRANSACTION-RESPONSE"
-           "AUTH-CAPTURE-TRANSACTION-RESPONSE"
            "TRANSACTION-RESPONSE-RESPONSE-CODE"
            "TRANSACTION-RESPONSE-RESPONSE-CODE-DESCRIPTION"
            "TRANSACTION-RESPONSE-AUTH-CODE"
@@ -74,6 +80,8 @@
            "RESPONSE-MESSAGE-TEXT"
            "RESPONSE-TRANSACTION-RESPONSE"
            ;;
+           "TRANSACTION-REQUEST-TRANSACTION-RESPONSE"
+           ;;
            "API-ERROR"
            "EXECUTION-FAILED"
            "EXECUTION-FAILED-REQUEST"
@@ -85,7 +93,7 @@
            "TRANSACTION-FAILED-RAW-RESPONSE"
            "EXECUTE"))
 
-(in-package "CL-ANET-API/CORE")
+(in-package "CL-ANET-API/CORE/REQUEST-RESPONSE")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (wu-decimal:enable-reader-macro)
@@ -153,66 +161,23 @@
 
 (defgeneric (setf transaction-request-duplicate-window) (value transaction-request))
 
-;; LATER transaction-request-email-customer-p
-;; LATER transaction-request-recurring-billing-p
+(defgeneric transaction-request-amount (transaction-request))
 
-(defclass auth-capture-transaction-request (transaction-request)
-  ((amount :initarg :amount :reader transaction-request-amount) ; total, including tax, shipping, and other charges; 15 digits
-   (payment :initarg :payment :reader transaction-request-payment)
-   (order :initarg :order :reader transaction-request-order)
-   (line-items :initarg :line-items :reader transaction-request-line-items)
-   (tax :initarg :tax :reader transaction-request-tax)
-   (customer :initarg :customer :reader transaction-request-customer)
-   (bill-to :initarg :bill-to :reader transaction-request-bill-to)
-   (customer-ip :initarg :customer-ip :reader transaction-request-customer-ip)
-   (settings :initform '() :reader transaction-request-settings))
-  (:default-initargs
-   :amount #$0.00
-    :payment nil
-    :order nil
-    :line-items '()
-    :tax nil
-    :customer nil
-    :bill-to nil
-    :customer-ip *default-customer-ip*))
+(defgeneric transaction-request-payment (transaction-request))
 
-(defmethod transaction-request-type ((transaction-request auth-capture-transaction-request))
-  "authCaptureTransaction")
+(defgeneric transaction-request-order (transaction-request))
 
-(defmethod transaction-request-allow-partial-auth-p ((transaction-request auth-capture-transaction-request))
-  (getf (slot-value transaction-request 'settings) :allow-partial-auth))
+(defgeneric transaction-request-line-items (transaction-request))
 
-(defmethod (setf transaction-request-allow-partial-auth-p) (value (transaction-request auth-capture-transaction-request))
-  (check-type value boolean)
-  (setf (getf (slot-value transaction-request 'settings) :allow-partial-auth) value))
+(defgeneric transaction-request-tax (transaction-request))
 
-(defmethod transaction-request-duplicate-window ((transaction-request auth-capture-transaction-request))
-  (getf (slot-value transaction-request 'settings) :duplicate-window))
+(defgeneric transaction-request-customer (transaction-request))
 
-(defmethod (setf transaction-request-duplicate-window) (value (transaction-request auth-capture-transaction-request))
-  (check-type value integer)
-  (setf (getf (slot-value transaction-request 'settings) :duplicate-window) value))
+(defgeneric transaction-request-bill-to (transaction-request))
 
-;; TODO review "refundTransctions" as "Credit" vs. as "Refund a Transaction"
-;; TODO (defclass refund-transaction-request (transaction-request)
-;;   ((ref-trans-id :initarg :ref-trans-id :reader transaction-request-ref-trans-id))
-;;   (:default-initargs
-;;    :ref-trans-id ""))
+(defgeneric transaction-request-customer-ip (transaction-request))
 
-;; TODO (defmethod transaction-request-type ((transaction-request refund-transaction-request))
-;;   "refundTransaction")
-
-;; TODO (defclass void-transaction-request (transaction-request)
-;;   ((ref-trans-id :initarg :ref-trans-id :reader transaction-request-ref-trans-id))
-;;   (:default-initargs
-;;    :ref-trans-id ""))
-
-;; TODO (defmethod transaction-request-type ((transaction-request void-transaction-request))
-;;   "voidTransaction")
-
-;; LATER auth-only-transaction-request
-;; LATER prior-auth-capture-transaction-request (ref-trans-id)
-;; LATER capture-only-transaction-request (auth-code)
+(defgeneric transaction-request-settings (transaction-request))
 
 (defclass transaction-response () ())
 
@@ -234,45 +199,31 @@
           ((string= *transaction-response-response-code-held-for-review* response-code)
            :held-for-review))))
 
-(defclass auth-capture-transaction-response (transaction-response)
-  ((response-code :initarg :response-code :reader transaction-response-response-code)
-   (auth-code :initarg :auth-code :reader transaction-response-auth-code)
-   (avs-result-code :initarg :avs-result-code :reader transaction-response-avs-result-code)
-   (cvv-result-code :initarg :cvv-result-code :reader transaction-response-cvv-result-code)
-   (cavv-result-code :initarg :cavv-result-code :reader transaction-response-cavv-result-code)
-   (trans-id :initarg :trans-id :reader transaction-response-trans-id)
-   ;; NOTE watch JSON decode of "refTransID" as :REF-TRANS-+ID+
-   (ref-trans-id :initarg :ref-trans-id :reader transaction-response-ref-trans-id)
-   (trans-hash :initarg :trans-hash :reader transaction-response-trans-hash)
-   (account-number :initarg :account-number :reader transaction-response-account-number)
-   (account-type :initarg :account-type :reader transaction-response-account-type)
-   (message-code :initarg :message-code :reader transaction-response-message-code)
-   (message-description :initarg :message-description :reader transaction-response-message-description)
-   (error-code :initarg :error-code :reader transaction-response-error-code)
-   (error-text :initarg :error-text :reader transaction-response-error-text)
-   ;; LATER other fields...
-   )
-  (:default-initargs
-   :response-code ""
-    :auth-code ""
-    :avs-result-code ""
-    :cvv-result-code ""
-    :cavv-result-code ""
-    :trans-id ""
-    :ref-trans-id ""
-    :trans-hash ""
-    :account-number ""
-    :account-type ""
-    :message-code ""
-    :message-description ""
-    :error-code ""
-    :error-text ""))
+(defgeneric transaction-response-auth-code (transaction-response))
 
-;; TODO refun-transaction-response
-;; TODO void-transaction-response
-;; LATER auth-only-transaction-response
-;; LATER prior-auth-capture-transaction-response
-;; LATER capture-only-transaction-response
+(defgeneric transaction-response-avs-result-code (transaction-response))
+
+(defgeneric transaction-response-cvv-result-code (transaction-response))
+
+(defgeneric transaction-response-cavv-result-code (transaction-response))
+
+(defgeneric transaction-response-trans-id (transaction-response))
+
+(defgeneric transaction-response-ref-trans-id (transaction-response))
+
+(defgeneric transaction-response-trans-hash (transaction-response))
+
+(defgeneric transaction-response-account-number (transaction-response))
+
+(defgeneric transaction-response-account-type (transaction-response))
+
+(defgeneric transaction-response-message-code (transaction-response))
+
+(defgeneric transaction-response-message-description (transaction-response))
+
+(defgeneric transaction-response-error-code (transaction-response))
+
+(defgeneric transaction-response-error-text (transaction-response))
 
 (defclass request ()
   ((merchant-authentication :initarg :merchant-authentication :reader request-merchant-authentication)
@@ -386,56 +337,6 @@
       (cl-json:encode-object-member :phone-number customer-address-phone-number stream)
       (cl-json:encode-object-member :fax-number customer-address-fax-number stream))))
 
-(defmethod cl-json:encode-json ((transaction-request auth-capture-transaction-request)
-                                &optional (stream cl-json:*json-output*))
-  (with-accessors ((transaction-request-type transaction-request-type)
-                   (transaction-request-amount transaction-request-amount)
-                   (transaction-request-payment transaction-request-payment)
-                   (transaction-request-order transaction-request-order)
-                   (transaction-request-line-items transaction-request-line-items)
-                   (transaction-request-tax transaction-request-tax)
-                   (transaction-request-customer transaction-request-customer)
-                   (transaction-request-bill-to transaction-request-bill-to)
-                   (transaction-request-customer-ip transaction-request-customer-ip)
-                   (transaction-request-settings transaction-request-settings))
-      transaction-request
-    (cl-json:with-object (stream)
-      (cl-json:encode-object-member :transaction-type transaction-request-type stream)
-      (cl-json:encode-object-member :amount (let ((wu-decimal:*print-precision-loss* :round))
-                                              (format nil "~/wu-decimal:$/" transaction-request-amount))
-                                    stream)
-      (unless (null transaction-request-payment)
-        (cl-json:encode-object-member :payment transaction-request-payment stream))
-      (unless (null transaction-request-order)
-        (cl-json:encode-object-member :order transaction-request-order stream))
-      (unless (null transaction-request-line-items)
-        (cl-json:as-object-member (:line-items stream)
-          (cl-json:with-object (stream)
-            (dolist (line-item transaction-request-line-items)
-              (cl-json:encode-object-member :line-item line-item stream)))))
-      (unless (null transaction-request-tax)
-        (cl-json:encode-object-member :tax transaction-request-tax stream))
-      (unless (null transaction-request-customer)
-        (cl-json:encode-object-member :customer transaction-request-customer stream))
-      (unless (null transaction-request-bill-to)
-        (cl-json:encode-object-member :bill-to transaction-request-bill-to stream))
-      (cl-json:encode-object-member :customer-i-p transaction-request-customer-ip stream)
-      (unless (null transaction-request-settings) ; assuming a list implementation
-        (cl-json:as-object-member (:transaction-settings stream)
-          (cl-json:with-object (stream)
-            (alexandria:doplist (key value transaction-request-settings)
-              (ecase key
-                (:allow-partial-auth
-                 (cl-json:as-object-member (:setting stream)
-                   (cl-json:encode-object-member :setting-name key stream)
-                   (cl-json:encode-object-member :setting-value (if value "True" "False")
-                                                 stream)))
-                (:duplicate-window
-                 (cl-json:as-object-member (:setting stream)
-                   (cl-json:encode-object-member :setting-name key stream)
-                   (cl-json:encode-object-member :setting-value (princ-to-string value)
-                                                 stream)))))))))))
-
 (defmethod cl-json:encode-json ((request request) &optional (stream cl-json:*json-output*))
   (with-accessors ((request-merchant-authentication request-merchant-authentication)
                    (request-ref-id request-ref-id)
@@ -517,29 +418,6 @@
 
 (defgeneric transaction-request-transaction-response
     (transaction-request raw-response-transaction-response))
-
-(defmethod transaction-request-transaction-response
-    ((transaction-request auth-capture-transaction-request)
-     raw-response-transaction-response)
-  (flet ((value (key)
-           (cdr (assoc key raw-response-transaction-response))))
-    (let ((message (cadr (assoc :messages raw-response-transaction-response)))
-          (err (cadr (assoc :errors raw-response-transaction-response))))
-      (make-instance 'auth-capture-transaction-response
-                     :response-code (value :response-code)
-                     :auth-code (value :auth-code)
-                     :avs-result-code (value :avs-result-code)
-                     :cvv-result-code (value :cvv-result-code)
-                     :cavv-result-code (value :cavv-result-code)
-                     :trans-id (value :trans-id)
-                     :ref-trans-id (value :ref-trans-+id+) ; Parsed from "refTransID"!
-                     :trans-hash (value :trans-hash)
-                     :account-number (value :account-number)
-                     :account-type (value :account-type)
-                     :message-code (or (cdr (assoc :code message)) "")
-                     :message-description (or (cdr (assoc :description message)))
-                     :error-code (or (cdr (assoc :error-code err)) "")
-                     :error-text (or (cdr (assoc :error-text err)) "")))))
 
 (defun execute (request endpoint)
   (check-type request request)

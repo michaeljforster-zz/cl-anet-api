@@ -1,4 +1,4 @@
-;;;; cl-anet-api.asd
+;;;; core/all.lisp
 
 ;;; The MIT License (MIT)
 ;;;
@@ -22,22 +22,7 @@
 ;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;;; SOFTWARE.
 
-#-asdf3.1 (error "cl-anet-api requires ASDF 3.1 or later. Please upgrade your ASDF.")
-
-(asdf:defsystem "cl-anet-api"
-  :description "Common Lisp library for the Authorize.Net API"
-  :author "Michael J. Forster <mike@forsterfamily.ca>"
-  :license "MIT"
-  :version "0.0.1"
-  :class :package-inferred-system
-  :defsystem-depends-on ("asdf-package-system")
-  :depends-on ("cl-anet-api/core/all")
-  :in-order-to ((test-op (test-op "cl-anet-api/test"))))
-
-(asdf:defsystem "cl-anet-api/test"
-  :depends-on ("cl-anet-api/test")
-  :perform (test-op (o c)
-                    (uiop:symbol-call "LISP-UNIT"
-                                      "RUN-TESTS"
-                                      :all
-                                      "CL-ANET-API/TEST")))
+(uiop:define-package "CL-ANET-API/CORE/ALL"
+  (:nicknames "CL-ANET-API")
+  (:use-reexport "CL-ANET-API/CORE/REQUEST-RESPONSE"
+                 "CL-ANET-API/CORE/AUTH-CAPTURE"))
