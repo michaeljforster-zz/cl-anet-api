@@ -33,7 +33,7 @@
            "MAKE-CREDIT-CARD"
            "MAKE-ORDER"
            "MAKE-LINE-ITEM"
-           "MAX-TAX"
+           "MAKE-TAX"
            "MAKE-CUSTOMER"
            "MAKE-CUSTOMER-ADDRESS"
            ;;
