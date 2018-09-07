@@ -33,6 +33,9 @@
 
 (in-package "CL-ANET-API/CORE/AUTH-CAPTURE")
 
+;; See http://developer.authorize.net/api/reference/
+(defparameter *default-customer-ip* "255.255.255.255")
+
 (defclass auth-capture-transaction-request (cl-anet-api/core/request-response:transaction-request)
   ((amount :initarg :amount :reader cl-anet-api/core/request-response:transaction-request-amount) ; total, including tax, shipping, and other charges; 15 digits
    (payment :initarg :payment :reader cl-anet-api/core/request-response:transaction-request-payment)

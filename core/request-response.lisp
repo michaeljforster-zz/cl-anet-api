@@ -103,9 +103,6 @@
 
 (defparameter *result-code-ok* "Ok")
 
-;; See http://developer.authorize.net/api/reference/
-(defparameter *default-customer-ip* "255.255.255.255")
-
 (defstruct (merchant-authentication (:constructor make-merchant-authentication (api-login-id
                                                                                 transaction-key)))
   (api-login-id nil :type string :read-only t)
