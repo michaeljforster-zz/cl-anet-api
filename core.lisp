@@ -23,6 +23,7 @@
 ;;; SOFTWARE.
 
 (defpackage "CL-ANET-API/CORE"
+  (:nicknames "CL-ANET-API")
   (:use "CL")
   (:import-from "ALEXANDRIA")
   (:import-from "WU-DECIMAL")
