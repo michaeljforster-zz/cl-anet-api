@@ -117,12 +117,13 @@
   (invoice-number nil :type string :read-only t)
   (description nil :type string :read-only t))
 
-(defstruct (line-item (:constructor make-line-item (item-id name description quantity price)))
+(defstruct (line-item (:constructor make-line-item (item-id name description quantity unit-price taxable)))
   (item-id nil :type string :read-only t) ; max. 31 chars
   (name nil :type string :read-only t) ; max. 31 chars
   (description nil :type string :read-only t) ; max. 255 chars
   (quantity 0 :type (integer 0) :read-only t) ; max. 2 decimal places, positive
-  (price 0 :type (rational 0) :read-only t)) ; excluding tax, shipping, and duty
+  (unit-price 0 :type (rational 0) :read-only t) ; excluding tax, shipping, and duty
+  (taxable nil :type boolean :read-only t)) ; boolean
 
 (defstruct (tax (:constructor make-tax (amount name description)))
   (amount nil :type (rational 0) :read-only t) ; max. 2 decimal places
@@ -277,7 +278,8 @@
                    (line-item-name line-item-name)
                    (line-item-description line-item-description)
                    (line-item-quantity line-item-quantity)
-                   (line-item-price line-item-price))
+                   (line-item-unit-price line-item-unit-price)
+                   (line-item-taxable line-item-taxable))
       object
     (cl-json:with-object (stream)
       (cl-json:encode-object-member :item-id line-item-item-id stream)
@@ -285,8 +287,9 @@
       (cl-json:encode-object-member :description line-item-description stream)
       (cl-json:encode-object-member :quantity (princ-to-string line-item-quantity) stream)
       (cl-json:encode-object-member :unit-price (let ((wu-decimal:*print-precision-loss* :round))
-                                                  (format nil "~/wu-decimal:$/" line-item-price))
-                                    stream))))
+                                                  (format nil "~/wu-decimal:$/" line-item-unit-price))
+                                    stream)
+      (cl-json:encode-object-member :taxable (if line-item-taxable "true" "false") stream))))
 
 (defmethod cl-json:encode-json ((object tax) &optional (stream cl-json:*json-output*))
   (with-accessors ((tax-amount tax-amount)
