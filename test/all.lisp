@@ -27,10 +27,10 @@
 (defpackage "CL-ANET-API/TEST/ALL"
   (:use "CL")
   (:import-from "LISP-UNIT")
-  (:import-from "CL-ANET-API/TEST/FOO")
+  (:import-from "CL-ANET-API/TEST/AUTH-CAPTURE")
   (:export "RUN-TESTS"))
 
 (in-package "CL-ANET-API/TEST/ALL")
 
 (defun run-tests ()
-  (lisp-unit:run-tests :all "CL-ANET-API/TEST/FOO"))
+  (lisp-unit:run-tests :all "CL-ANET-API/TEST/AUTH-CAPTURE"))
